@@ -3,6 +3,7 @@ package com.bignerdranch.android.mapkit
 import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.renderscript.ScriptGroup.Input
 import android.widget.ToggleButton
 import androidx.core.app.ActivityCompat
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -10,12 +11,29 @@ import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraPosition
+import com.yandex.mapkit.map.InputListener
+import com.yandex.mapkit.map.Map
+import com.yandex.mapkit.map.MapObjectCollection
 import com.yandex.mapkit.mapview.MapView
+import com.yandex.mapkit.user_location.UserLocationLayer
+import com.yandex.runtime.image.ImageProvider
 
 class MainActivity : AppCompatActivity() {
     lateinit var mapView: MapView
     lateinit var locationButton: FloatingActionButton
     lateinit var trafficButton: ToggleButton
+    lateinit var userLocationLayer: UserLocationLayer
+    lateinit var mapObjectCollection: MapObjectCollection
+
+    private val inputListener = object : InputListener {
+        override fun onMapTap(p0: Map, p1: Point) {
+            setMark(p1)
+        }
+
+        override fun onMapLongTap(p0: Map, p1: Point) {
+            setMark(p1)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,6 +59,13 @@ class MainActivity : AppCompatActivity() {
         trafficButton.setOnCheckedChangeListener { buttonView, isChecked ->
             trafficLayer.isTrafficVisible = isChecked
         }
+
+        userLocationLayer = mapKit.createUserLocationLayer(mapView.mapWindow)
+        userLocationLayer.isVisible = true
+
+        mapObjectCollection = mapView.map.mapObjects.addCollection()
+
+        mapView.map.addInputListener(inputListener)
     }
 
     override fun onStop() {
@@ -73,7 +98,7 @@ class MainActivity : AppCompatActivity() {
     fun toLocation() {
         mapView.map.move(
             CameraPosition(
-                Point(55.354880, 86.086396),
+                userLocationLayer.cameraPosition()!!.getTarget(),
                 18f,
                 0f,
                 0f
@@ -81,5 +106,9 @@ class MainActivity : AppCompatActivity() {
             Animation(Animation.Type.SMOOTH, 5f),
             null
         )
+    }
+
+    fun setMark(point: Point) {
+        mapObjectCollection.addPlacemark(point)
     }
 }
